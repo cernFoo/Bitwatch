@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Read aggregate network usage stats (requires the user to grant the
+         special "Usage access" permission in Settings; this manifest entry
+         alone does not grant it). -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Needed on some OEMs/API levels to resolve the mobile subscriber ID
+         when querying NetworkStatsManager for cellular-only totals. -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <!-- Runtime permission required on Android 13+ (API 33) to post the
+         persistent foreground-service notification. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Required to run the always-on monitoring foreground service. On
+         Android 14+ (API 34) foreground service types must be declared and
+         justified; DATA_SYNC most closely matches "continuously monitoring
+         and reporting network statistics". -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- Re-anchor the notification / restart monitoring after a reboot. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Basic connectivity/state reads used for live speed sampling. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Keep the monitoring service from being killed as aggressively by
+         battery optimizers; user must still grant this manually. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <application
+        android:label="BitWatch"
+        android:name="${applicationName}"
+        android:icon="@drawable/ic_launcher">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+
+        <!-- Foreground service that owns the persistent notification showing
+             live speed + today's usage + timer state, and re-anchors itself
+             if the user swipes the notification away (see
+             BitWatchForegroundService.onTaskRemoved / the notification's
+             deleteIntent, wired up in the service). -->
+        <service
+            android:name=".BitWatchForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="false" />
+
+        <!-- Re-shows the notification immediately if the user dismisses it,
+             satisfying the "non-dismissible" requirement without relying
+             purely on FLAG_ONGOING_EVENT (which some OEM launchers still
+             allow swiping away from the recents/notification shade). -->
+        <receiver
+            android:name=".NotificationDismissReceiver"
+            android:exported="false" />
+
+        <!-- Restarts the monitoring service after device reboot. -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+    <!-- Required to query package visibility for the usage-access settings
+         deep link on API 30+. -->
+    <queries>
+        <intent>
+            <action android:name="android.settings.USAGE_ACCESS_SETTINGS" />
+        </intent>
+    </queries>
+
+</manifest>
