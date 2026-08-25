@@ -132,29 +132,9 @@ class _DataRow extends StatelessWidget {
 
     return Container(
       color: highlight
-          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.25)
+          ? theme.colorScheme.primaryContainer.withOpacity(0.25)
           : null,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          Expanded(flex: 3, child: Text(label, style: baseStyle)),
-          Expanded(
-            flex: 2,
-            child: Text(Formatters.bytes(usage.mobileBytes),
-                style: baseStyle, textAlign: TextAlign.right),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(Formatters.bytes(usage.wifiBytes),
-                style: baseStyle, textAlign: TextAlign.right),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(Formatters.bytes(usage.totalBytes),
-                style: baseStyle, textAlign: TextAlign.right),
-          ),
-        ],
-      ),
-    );
-  }
-}
+          Expanded(flex:
