@@ -10,3 +10,10 @@
 -keep class io.flutter.view.**  { *; }
 -keep class io.flutter.**  { *; }
 -keep class io.flutter.plugins.**  { *; }
+
+# Flutter's embedding references Google Play Core "deferred components"
+# (dynamic feature delivery) classes for an optional code path BitWatch
+# doesn't use and has no dependency on. Without these lines R8 fails the
+# release build with "Missing class com.google.android.play.core.*" errors.
+-dontwarn com.google.android.play.core.**
+-dontwarn io.flutter.embedding.engine.deferredcomponents.**
