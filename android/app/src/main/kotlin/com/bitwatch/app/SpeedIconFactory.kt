@@ -18,46 +18,70 @@ import kotlin.math.roundToInt
  */
 object SpeedIconFactory {
 
-    // Status bar icons are small; keep this compact and legible at ~48-64px.
-    private const val SIZE_PX = 96
+    // Rendered at a higher resolution than the status bar actually displays
+    // (Android downsamples smoothly), which keeps digits crisp instead of
+    // blurry/illegible at real icon size. Note: since Android 5.0, the
+    // system renders small icons as a solid alpha mask (ignoring color), so
+    // only the shape/coverage of these pixels matters - the paint color
+    // itself doesn't need to change.
+    private const val SIZE_PX = 144
 
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    // Two-row layout ("84" over "KB/s") instead of one line ("84K"): each
+    // row gets the full canvas width to itself, so the number can be drawn
+    // noticeably larger than when it had to share a line with a unit
+    // suffix. Mirrors the stacked number/unit style some OEM lock screens
+    // use for their own built-in network speed indicator.
+    private val numberPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
     }
 
+    private val unitPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        textAlign = Paint.Align.CENTER
+    }
+
     /**
-     * Builds a compact label like "512K" or "2.3M" (kept short so it stays
-     * legible at status-bar icon size) for the given download bytes/sec.
+     * Splits a download speed into a (number, unit) pair for the two-row
+     * icon, e.g. (84, "KB/s") or (2.3, "MB/s"). Always KB or MB - sub-KB
+     * speeds round to "0"/"KB/s" rather than falling back to a "B/s" unit,
+     * since a bytes-per-second reading isn't meaningful at a glance.
      */
-    fun formatCompact(bytesPerSecond: Long): String {
+    fun formatParts(bytesPerSecond: Long): Pair<String, String> {
         val kb = 1024.0
         val mb = kb * 1024.0
-        return when {
-            bytesPerSecond >= mb -> "${"%.1f".format(bytesPerSecond / mb)}M"
-            bytesPerSecond >= kb -> "${(bytesPerSecond / kb).roundToInt()}K"
-            else -> "${bytesPerSecond}B"
+        return if (bytesPerSecond >= mb) {
+            "%.1f".format(bytesPerSecond / mb) to "MB/s"
+        } else {
+            "${(bytesPerSecond / kb).roundToInt()}" to "KB/s"
         }
     }
 
     fun buildIcon(downloadBytesPerSecond: Long): IconCompat {
-        val label = formatCompact(downloadBytesPerSecond)
+        val (number, unit) = formatParts(downloadBytesPerSecond)
         val bitmap = Bitmap.createBitmap(SIZE_PX, SIZE_PX, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        // Scale font size down as the label gets longer so 4-char labels
-        // like "12.3M" still fit without clipping.
-        val fontSize = when (label.length) {
-            in 0..2 -> 52f
-            3 -> 42f
-            4 -> 34f
-            else -> 28f
+        // Scale the number's font size down as it gets longer so 4-char
+        // values like "12.3" still fit without clipping.
+        numberPaint.textSize = when (number.length) {
+            in 0..2 -> 68f
+            3 -> 56f
+            else -> 46f
         }
-        paint.textSize = fontSize
+        unitPaint.textSize = 26f
 
-        val yPos = (SIZE_PX / 2f) - ((paint.descent() + paint.ascent()) / 2f)
-        canvas.drawText(label, SIZE_PX / 2f, yPos, paint)
+        // Top ~60% of the canvas for the number, bottom ~40% for the unit.
+        val topRectCenterY = SIZE_PX * 0.32f
+        val bottomRectCenterY = SIZE_PX * 0.78f
+
+        val numberY = topRectCenterY - ((numberPaint.descent() + numberPaint.ascent()) / 2f)
+        val unitY = bottomRectCenterY - ((unitPaint.descent() + unitPaint.ascent()) / 2f)
+
+        canvas.drawText(number, SIZE_PX / 2f, numberY, numberPaint)
+        canvas.drawText(unit, SIZE_PX / 2f, unitY, unitPaint)
 
         return IconCompat.createWithBitmap(bitmap)
     }
