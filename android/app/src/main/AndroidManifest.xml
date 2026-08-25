@@ -99,6 +99,9 @@
         <intent>
             <action android:name="android.settings.USAGE_ACCESS_SETTINGS" />
         </intent>
+        <intent>
+            <action android:name="android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS" />
+        </intent>
     </queries>
 
 </manifest>

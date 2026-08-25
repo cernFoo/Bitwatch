@@ -39,6 +39,14 @@ class PermissionService {
     return PlatformService.instance.openUsageAccessSettings();
   }
 
+  Future<bool> hasBatteryOptimizationExemption() {
+    return PlatformService.instance.hasBatteryOptimizationExemption();
+  }
+
+  Future<void> requestBatteryOptimizationExemption() {
+    return PlatformService.instance.requestBatteryOptimizationExemption();
+  }
+
   /// Runs through notification + phone-state requests and reports whether
   /// usage access is still needed (the caller should prompt the user to
   /// visit Settings for that one, since it can't be requested inline).
@@ -46,10 +54,12 @@ class PermissionService {
     final notif = await requestNotificationPermission();
     final phone = await requestPhoneStatePermission();
     final usage = await hasUsageAccess();
+    final battery = await hasBatteryOptimizationExemption();
     return PermissionCheckResult(
       notificationsGranted: notif,
       phoneStateGranted: phone,
       usageAccessGranted: usage,
+      batteryOptimizationExempt: battery,
     );
   }
 }
@@ -58,13 +68,18 @@ class PermissionCheckResult {
   final bool notificationsGranted;
   final bool phoneStateGranted;
   final bool usageAccessGranted;
+  final bool batteryOptimizationExempt;
 
   const PermissionCheckResult({
     required this.notificationsGranted,
     required this.phoneStateGranted,
     required this.usageAccessGranted,
+    required this.batteryOptimizationExempt,
   });
 
   bool get allGranted =>
-      notificationsGranted && phoneStateGranted && usageAccessGranted;
+      notificationsGranted &&
+      phoneStateGranted &&
+      usageAccessGranted &&
+      batteryOptimizationExempt;
 }

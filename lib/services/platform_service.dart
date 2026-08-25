@@ -129,4 +129,23 @@ class PlatformService {
         await _methodChannel.invokeMethod<int>('getCurrentTotalBytes');
     return bytes ?? 0;
   }
+
+  // ---------------------------------------------------------------------
+  // Battery optimization exemption
+  // ---------------------------------------------------------------------
+
+  /// Whether BitWatch is currently exempt from Doze / App Standby battery
+  /// optimizations. Like PACKAGE_USAGE_STATS, this is "special access" that
+  /// can't be requested via a runtime permission dialog.
+  Future<bool> hasBatteryOptimizationExemption() async {
+    final granted = await _methodChannel
+        .invokeMethod<bool>('hasBatteryOptimizationExemption');
+    return granted ?? false;
+  }
+
+  /// Launches the system's native "Allow BitWatch to ignore battery
+  /// optimizations?" dialog.
+  Future<void> requestBatteryOptimizationExemption() async {
+    await _methodChannel.invokeMethod('requestBatteryOptimizationExemption');
+  }
 }

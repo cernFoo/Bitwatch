@@ -37,13 +37,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final result = await PermissionService.instance.ensureAll();
     if (!mounted) return;
     if (!result.usageAccessGranted) {
-      _promptUsageAccess();
+      await _promptUsageAccess();
+    }
+    if (!mounted) return;
+    if (!result.batteryOptimizationExempt) {
+      await _promptBatteryOptimization();
     }
     await PlatformService.instance.startForegroundService();
   }
 
-  void _promptUsageAccess() {
-    showDialog(
+  Future<void> _promptUsageAccess() {
+    return showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
@@ -64,6 +68,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               PermissionService.instance.openUsageAccessSettings();
             },
             child: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _promptBatteryOptimization() {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Allow Background Monitoring'),
+        content: const Text(
+          'Some phones aggressively stop background apps to save battery, '
+          'which can kill BitWatch\'s monitoring service and notification. '
+          'Allowing BitWatch to ignore battery optimizations keeps your '
+          'stats accurate even when the app isn\'t open.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Not Now'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              PermissionService.instance.requestBatteryOptimizationExemption();
+            },
+            child: const Text('Allow'),
           ),
         ],
       ),

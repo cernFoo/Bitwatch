@@ -132,7 +132,7 @@ class _DataRow extends StatelessWidget {
 
     return Container(
       color: highlight
-          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.25)
+          ? theme.colorScheme.primaryContainer.withOpacity(0.25)
           : null,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(

@@ -1,8 +1,10 @@
 package com.bitwatch.app
 
+import android.content.Context
 import android.content.Intent
 import android.net.TrafficStats
 import android.net.Uri
+import android.os.PowerManager
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -112,6 +114,15 @@ class MainActivity : FlutterActivity() {
                         result.success(NetworkStatsHelper.currentTotalBytes())
                     }
 
+                    "hasBatteryOptimizationExemption" -> {
+                        result.success(isIgnoringBatteryOptimizations())
+                    }
+
+                    "requestBatteryOptimizationExemption" -> {
+                        requestBatteryOptimizationExemption()
+                        result.success(null)
+                    }
+
                     else -> result.notImplemented()
                 }
             }
@@ -184,5 +195,39 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         tickJob?.cancel()
         super.onDestroy()
+    }
+
+    /**
+     * Whether BitWatch is currently exempt from Doze/App Standby battery
+     * optimizations. Like Usage Access, this is a "special access" setting
+     * Android does not allow requesting via a plain runtime permission
+     * dialog - the system intent below shows its own native confirmation
+     * dialog instead.
+     */
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        return powerManager.isIgnoringBatteryOptimizations(packageName)
+    }
+
+    /**
+     * Launches the system's "Allow [app] to ignore battery optimizations?"
+     * dialog directly (ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS), rather
+     * than deep-linking to the general battery settings screen, so the user
+     * can grant it in a single tap. Falls back to the general Settings
+     * screen if the direct-request intent isn't handled on this OEM build.
+     */
+    private fun requestBatteryOptimizationExemption() {
+        try {
+            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:$packageName")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+        } catch (_: Exception) {
+            val fallback = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(fallback)
+        }
     }
 }
