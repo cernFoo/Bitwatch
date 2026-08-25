@@ -39,23 +39,31 @@ object SpeedIconFactory {
 
     private val unitPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
-        typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        // Bold, not regular: at real status-bar size (the OS downsamples
+        // our 144px canvas to roughly 24-33dp), thin regular-weight strokes
+        // break apart into illegible fragments once flattened to a 1-bit
+        // alpha mask. Bold survives that downsample much better.
+        typeface = Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
     }
 
     /**
      * Splits a download speed into a (number, unit) pair for the two-row
-     * icon, e.g. (84, "KB/s") or (2.3, "MB/s"). Always KB or MB - sub-KB
-     * speeds round to "0"/"KB/s" rather than falling back to a "B/s" unit,
-     * since a bytes-per-second reading isn't meaningful at a glance.
+     * icon, e.g. (84, "KB") or (2.3, "MB"). Always KB or MB - sub-KB speeds
+     * round to "0"/"KB" rather than falling back to a "B" unit, since a
+     * bytes-per-second reading isn't meaningful at a glance. The unit is
+     * intentionally just "KB"/"MB" (no "/s" suffix) here - the icon needs to
+     * stay as short and bold as possible to survive the downsample to real
+     * status-bar size; "per second" is implicit and still spelled out in
+     * full in the notification body.
      */
     fun formatParts(bytesPerSecond: Long): Pair<String, String> {
         val kb = 1024.0
         val mb = kb * 1024.0
         return if (bytesPerSecond >= mb) {
-            "%.1f".format(bytesPerSecond / mb) to "MB/s"
+            "%.1f".format(bytesPerSecond / mb) to "MB"
         } else {
-            "${(bytesPerSecond / kb).roundToInt()}" to "KB/s"
+            "${(bytesPerSecond / kb).roundToInt()}" to "KB"
         }
     }
 
@@ -65,17 +73,19 @@ object SpeedIconFactory {
         val canvas = Canvas(bitmap)
 
         // Scale the number's font size down as it gets longer so 4-char
-        // values like "12.3" still fit without clipping.
+        // values like "12.3" still fit without clipping. Pushed larger than
+        // before, and the unit dropped to a plain "KB"/"MB" (see
+        // formatParts), so both rows read clearly at real icon size.
         numberPaint.textSize = when (number.length) {
-            in 0..2 -> 68f
-            3 -> 56f
-            else -> 46f
+            in 0..2 -> 74f
+            3 -> 60f
+            else -> 50f
         }
-        unitPaint.textSize = 26f
+        unitPaint.textSize = 32f
 
-        // Top ~60% of the canvas for the number, bottom ~40% for the unit.
-        val topRectCenterY = SIZE_PX * 0.32f
-        val bottomRectCenterY = SIZE_PX * 0.78f
+        // Top ~58% of the canvas for the number, bottom ~40% for the unit.
+        val topRectCenterY = SIZE_PX * 0.34f
+        val bottomRectCenterY = SIZE_PX * 0.80f
 
         val numberY = topRectCenterY - ((numberPaint.descent() + numberPaint.ascent()) / 2f)
         val unitY = bottomRectCenterY - ((unitPaint.descent() + unitPaint.ascent()) / 2f)
