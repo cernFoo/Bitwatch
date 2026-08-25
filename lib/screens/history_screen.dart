@@ -137,4 +137,24 @@ class _DataRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          Expanded(flex:
+          Expanded(flex: 3, child: Text(label, style: baseStyle)),
+          Expanded(
+            flex: 2,
+            child: Text(Formatters.bytes(usage.mobileBytes),
+                style: baseStyle, textAlign: TextAlign.right),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(Formatters.bytes(usage.wifiBytes),
+                style: baseStyle, textAlign: TextAlign.right),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(Formatters.bytes(usage.totalBytes),
+                style: baseStyle, textAlign: TextAlign.right),
+          ),
+        ],
+      ),
+    );
+  }
+}
