@@ -121,6 +121,7 @@ class TimerController extends StateNotifier<TimerState> {
       paused: state.status == TimerStatus.paused,
       elapsedSeconds: state.elapsedSeconds,
       timerBytes: state.bytesUsed,
+      remainingSeconds: state.remainingSeconds,
     );
   }
 

@@ -54,6 +54,8 @@ class BitWatchForegroundService : Service() {
         @Volatile var timerPaused: Boolean = false
         @Volatile var timerElapsedSeconds: Int = 0
         @Volatile var timerBytes: Long = 0
+        // -1 means "no countdown limit set" (count-up / stopwatch mode).
+        @Volatile var timerRemainingSeconds: Int = -1
 
         fun start(context: Context) {
             val intent = Intent(context, BitWatchForegroundService::class.java)
@@ -76,12 +78,14 @@ class BitWatchForegroundService : Service() {
             active: Boolean,
             paused: Boolean,
             elapsedSeconds: Int,
-            bytes: Long
+            bytes: Long,
+            remainingSeconds: Int = -1
         ) {
             timerActive = active
             timerPaused = paused
             timerElapsedSeconds = elapsedSeconds
             timerBytes = bytes
+            timerRemainingSeconds = remainingSeconds
             // Nudge the running service to redraw immediately rather than
             // waiting up to a second for the next natural tick.
             val intent = Intent(context, BitWatchForegroundService::class.java)
@@ -225,11 +229,18 @@ class BitWatchForegroundService : Service() {
     }
 
     private fun buildNotification(downloadBps: Long, uploadBps: Long): Notification {
-        val timerLine = if (timerActive) {
-            val stateLabel = if (timerPaused) "Paused" else "Running"
-            "Timer ($stateLabel): ${formatBytes(timerBytes)} in ${formatDuration(timerElapsedSeconds)}"
-        } else {
-            "Timer: Inactive"
+        val hasCountdown = timerActive && timerRemainingSeconds >= 0
+
+        val timerLine = when {
+            !timerActive -> "Timer: Inactive"
+            hasCountdown -> {
+                val stateLabel = if (timerPaused) "Paused" else "Running"
+                "Timer ($stateLabel): ${formatBytes(timerBytes)} used \u00b7 ${formatDuration(timerRemainingSeconds)} left"
+            }
+            else -> {
+                val stateLabel = if (timerPaused) "Paused" else "Running"
+                "Timer ($stateLabel): ${formatBytes(timerBytes)} in ${formatDuration(timerElapsedSeconds)}"
+            }
         }
 
         val bigText = buildString {
@@ -238,9 +249,24 @@ class BitWatchForegroundService : Service() {
             append(timerLine)
         }
 
+        // The collapsed (non-expanded) notification only shows title + one
+        // line of text, so when the timer is running we prioritize it there
+        // instead of "Today" - the countdown is the thing a user glances at
+        // the status bar/notification shade for while a session is active.
+        val collapsedText = if (timerActive) {
+            val timerGlance = if (hasCountdown) {
+                "\u23f1 ${formatDuration(timerRemainingSeconds)} left"
+            } else {
+                "\u23f1 ${formatDuration(timerElapsedSeconds)} elapsed"
+            }
+            "\u2191 ${formatSpeed(uploadBps)}  \u00b7  $timerGlance"
+        } else {
+            "\u2191 ${formatSpeed(uploadBps)}  \u00b7  Today: ${formatBytes(cachedMobileBytes + cachedWifiBytes)}"
+        }
+
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("BitWatch \u00b7 ${formatSpeed(downloadBps)} \u2193")
-            .setContentText("\u2191 ${formatSpeed(uploadBps)}  \u00b7  Today: ${formatBytes(cachedMobileBytes + cachedWifiBytes)}")
+            .setContentText(collapsedText)
             .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
             .setSmallIcon(SpeedIconFactory.buildIcon(downloadBps))
             .setOngoing(true)

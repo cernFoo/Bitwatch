@@ -104,12 +104,17 @@ class PlatformService {
     required bool paused,
     required int elapsedSeconds,
     required int timerBytes,
+    int? remainingSeconds,
   }) async {
     await _methodChannel.invokeMethod('updateTimerState', {
       'active': active,
       'paused': paused,
       'elapsedSeconds': elapsedSeconds,
       'timerBytes': timerBytes,
+      // -1 signals "no countdown limit set" to the native side, since
+      // platform channels don't carry Dart's null through as cleanly as a
+      // sentinel int for this particular field.
+      'remainingSeconds': remainingSeconds ?? -1,
     });
   }
 

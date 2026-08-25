@@ -99,8 +99,9 @@ class MainActivity : FlutterActivity() {
                         val paused = call.argument<Boolean>("paused") ?: false
                         val elapsed = call.argument<Int>("elapsedSeconds") ?: 0
                         val bytes = (call.argument<Number>("timerBytes"))?.toLong() ?: 0L
+                        val remaining = call.argument<Int>("remainingSeconds") ?: -1
                         BitWatchForegroundService.updateTimer(
-                            applicationContext, active, paused, elapsed, bytes
+                            applicationContext, active, paused, elapsed, bytes, remaining
                         )
                         result.success(null)
                     }
